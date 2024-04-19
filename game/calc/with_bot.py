@@ -88,6 +88,7 @@ class WithBot:
         stable = False
         num_iter = 0
         while not stable:
+            stable = True
             values = self.policy_evaluation(self.policy)
             for (b1, b2), (c1, c2) in self.cell_pairs:
                 b_ind = self.open_cells[(b1, b2)]
@@ -101,7 +102,7 @@ class WithBot:
 
                 if old_action != self.policy[b_ind][c_ind]:
                     stable = False
-                    
+
             num_iter += 1
             print("policy iteration", num_iter)
     
