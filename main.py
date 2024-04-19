@@ -29,7 +29,10 @@ def main():
         case "tnb":
             calc_t_no_bot()
         case "tb":
-            calc_t_bot()
+            use_existing = "use_existing" in sys.argv
+            calc_t_bot(use_existing)
+        case "show_data":
+            show_data()
         case _:
             print("invalid command")
 
@@ -70,11 +73,17 @@ def calc_t_no_bot():
     plt.show()
 
     
-def calc_t_bot():
+def calc_t_bot(use_existing):
     ship = Ship(fromFile = True)
     printBoard(ship.board)
-
-    wb = WithBot(ship.board)
+        
+    if use_existing:
+        values = np.load(f"values.npy")
+        policy = np.load(f"policy.npy")
+        wb = WithBot(ship.board, values, policy)
+    else:
+        wb = WithBot(ship.board)
+        
     values, policy = wb.policy_iteration()
 
     # save the values and policy matrices
@@ -82,11 +91,10 @@ def calc_t_bot():
     np.save(f"policy.npy", policy)
 
     # fix one bot position, and reshape the values array, and plot it
-    botPos = (5, 3)
+    botPos = (0, 0)
     bot_index = wb.open_cells[botPos]
     values = values[bot_index]
     reshaped = np.full((len(ship.board), len(ship.board)), np.nan)
-    print(len(values))
 
     for cell, index in wb.open_cells.items():
         i, j = cell
@@ -96,6 +104,34 @@ def calc_t_bot():
     plt.show()
 
 
+def show_data():
+    ship = Ship(fromFile = True)
+    printBoard(ship.board)
+    wb = WithBot(ship.board)
+
+    values = np.load(f"values.npy")
+    policy = np.load(f"policy.npy")
+
+    botPos = (0, 0)
+    bot_index = wb.open_cells[botPos]
+    values = values[bot_index]
+    reshaped_values = np.full((len(ship.board), len(ship.board)), np.nan)
+    
+    crewPos = (2,8)
+    crew_index = wb.open_cells[crewPos]
+    policy = policy[crew_index]
+    reshaped_policy = np.full((len(ship.board), len(ship.board)), np.nan)
+
+    for cell, index in wb.open_cells.items():
+        i, j = cell
+        reshaped_values[i][j] = values[index]
+        reshaped_policy[i][j] = policy[index]
+
+    sns.heatmap(reshaped_values, annot=True, fmt=".2f")
+    plt.show()
+
+    sns.heatmap(reshaped_policy, annot=True, fmt=".2f")
+    plt.show()
 
 
 if __name__ == "__main__":
