@@ -1,11 +1,11 @@
-import numpy as np
+import cupy as np
 from game.ship import Node
 
 # policy iteration
 class WithBot:
     action_space = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
-    def __init__(self, board):
+    def __init__(self, board, policy=None, values=None):
         self.board = board
 
         cell_pairs = {}
@@ -26,6 +26,7 @@ class WithBot:
         self.num_pairs = len(cell_pairs)
         self.cell_pairs = cell_pairs
         self.bot_actions = {}
+        self.crew_responses = {}
 
         open_cells = {}
         index = 0
@@ -43,10 +44,10 @@ class WithBot:
         self.open_cells = open_cells
 
         # each entry of the values matrix correspond to the expected time to reach the teleport pad
-        self.values = np.zeros((self.n, self.n))
+        self.values = np.zeros((self.n, self.n)) if values is None else values
         # each entry of the policy matrix corresponds to the index of the action in the action space
         # this is the initial policy
-        self.policy = np.zeros((self.n, self.n))
+        self.policy = np.zeros((self.n, self.n)) if policy is None else policy
 
 
     def policy_evaluation(self, policy):
@@ -67,14 +68,14 @@ class WithBot:
             # determine the next state (the action should ALWAYS be valid)
             b_act = (b1 + action[0], b2 + action[1])
             # determine the set of all crew responses 
-            s_r = self.crew_responses(b_act, (c1, c2))
+            s_r = self.compute_crew_responses(b_act, (c1, c2))
             p = 1 / len(s_r)
 
             # update the system of equations
             for s in s_r:
                 s_ind = self.cell_pairs[b_act, s]
                 A[ind, s_ind] = -p
-            
+        
         x = np.linalg.solve(A, b)
         
         value = np.zeros((self.n, self.n))
@@ -93,17 +94,28 @@ class WithBot:
             for (b1, b2), (c1, c2) in self.cell_pairs:
                 b_ind = self.open_cells[(b1, b2)]
                 c_ind = self.open_cells[(c1, c2)]
-                old_action = self.policy[b_ind][c_ind]
 
                 allowed_actions = self.compute_bot_actions((b1, b2), (c1, c2))
-                self.policy[b_ind][c_ind] = np.argmin([
-                    self.compute_action_value((b1, b2), (c1, c2), values, action, allowed_actions) for i, action in enumerate(self.action_space)
-                ])
+                action_values = [
+                    self.compute_action_value((b1, b2), (c1, c2), values, action, allowed_actions) 
+                    for action in self.action_space
+                ]
+                action_values_np = np.array(action_values)
+                
+                new_action = np.argmin(action_values_np)
 
-                if old_action != self.policy[b_ind][c_ind]:
+                if new_action != self.policy[b_ind][c_ind]:
                     stable = False
 
+                self.policy[b_ind][c_ind] = new_action
+
             num_iter += 1
+
+            if num_iter % 15 == 0:
+                print("saving values and policy matrices")
+                np.save(f"data/values-ch{num_iter//15}.npy", values)
+                np.save(f"data/policy-ch{num_iter//15}.npy", self.policy)
+
             print("policy iteration", num_iter)
     
         return values, self.policy
@@ -131,16 +143,19 @@ class WithBot:
             return np.inf
 
         b_action = (botPos[0] + action[0], botPos[1] + action[1])
-        s_r = self.crew_responses(b_action, crewPos)
+        s_r = self.compute_crew_responses(b_action, crewPos)
 
-        return 1 + sum([
+        return float(1 + sum([
             values[self.open_cells[b_action]][self.open_cells[s]] / len(s_r) for s in s_r
-        ])
+        ]))
         
 
 
     # the crewmate randomly chooses the cell that maximizes the distance from the bot if they're adjacent
-    def crew_responses(self, botPos, crewPos):
+    def compute_crew_responses(self, botPos, crewPos):
+        if (botPos, crewPos) in self.crew_responses:
+            return self.crew_responses[(botPos, crewPos)]
+
         dirs = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         adj_cells = []
         
@@ -160,10 +175,12 @@ class WithBot:
                 elif dist == max_dist:
                     max_cells.append(cell)
                     
-            return max_cells
+            responses = max_cells
         else:
-            return adj_cells
+            responses = adj_cells
     
+        self.crew_responses[(botPos, crewPos)] = responses
+        return responses
 
     def _getManhattanDistance(self, pos1, pos2):
         x1, y1 = pos1
