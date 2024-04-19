@@ -6,6 +6,9 @@ import datetime
 
 from game.ship import Ship, printBoard
 from game.calc.no_bot import t_no_bot, uev
+from game.calc.with_bot import WithBot
+
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
@@ -25,6 +28,8 @@ def main():
             game()
         case "tnb":
             calc_t_no_bot()
+        case "tb":
+            calc_t_bot()
         case _:
             print("invalid command")
 
@@ -65,6 +70,30 @@ def calc_t_no_bot():
     plt.show()
 
     
+def calc_t_bot():
+    ship = Ship(fromFile = True)
+    printBoard(ship.board)
+
+    wb = WithBot(ship.board)
+    values, policy = wb.policy_iteration()
+
+    # save the values and policy matrices
+    np.save(f"values.npy", values)
+    np.save(f"policy.npy", policy)
+
+    # fix one bot position, and reshape the values array, and plot it
+    botPos = (5, 3)
+    bot_index = wb.open_cells[botPos]
+    values = values[bot_index]
+    reshaped = np.full((len(ship.board), len(ship.board)), np.nan)
+    print(len(values))
+
+    for cell, index in wb.open_cells.items():
+        i, j = cell
+        reshaped[i][j] = values[index]
+
+    sns.heatmap(reshaped, annot=True, fmt=".2f")
+    plt.show()
 
 
 
