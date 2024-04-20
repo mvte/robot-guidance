@@ -83,7 +83,7 @@ def calc_t_bot(use_existing):
         wb = WithBot(ship.board, values, policy)
     else:
         wb = WithBot(ship.board)
-        
+
     values, policy = wb.policy_iteration()
 
     # save the values and policy matrices
@@ -116,10 +116,10 @@ def show_data():
     bot_index = wb.open_cells[botPos]
     values = values[bot_index]
     reshaped_values = np.full((len(ship.board), len(ship.board)), np.nan)
-    
-    crewPos = (2,8)
+
+    crewPos = (3,4)
     crew_index = wb.open_cells[crewPos]
-    policy = policy[crew_index]
+    policy = policy[:,crew_index]
     reshaped_policy = np.full((len(ship.board), len(ship.board)), np.nan)
 
     for cell, index in wb.open_cells.items():
@@ -127,11 +127,21 @@ def show_data():
         reshaped_values[i][j] = values[index]
         reshaped_policy[i][j] = policy[index]
 
+
     sns.heatmap(reshaped_values, annot=True, fmt=".2f")
     plt.show()
+    
+    # action_space = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    directions = ["-", "→", "←", "↓", "↑", "↘", "↙", "↗", "↖"]
+    labels = [[" " for _ in range(len(ship.board))] for _ in range(len(ship.board))]
+    for i in range(len(ship.board)):
+        for j in range(len(ship.board)):
+            if (i, j) in wb.open_cells:
+                labels[i][j] = directions[int(reshaped_policy[i][j])]
 
-    sns.heatmap(reshaped_policy, annot=True, fmt=".2f")
+    sns.heatmap(reshaped_policy, vmax = 10, annot=labels, fmt="s")
     plt.show()
+
 
 
 if __name__ == "__main__":
