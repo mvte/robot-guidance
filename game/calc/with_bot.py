@@ -5,7 +5,7 @@ from game.ship import Node
 class WithBot:
     action_space = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
-    def __init__(self, board, policy=None, values=None):
+    def __init__(self, board, values=None, policy=None):
         self.board = board
 
         cell_pairs = {}
