@@ -101,8 +101,7 @@ class WithBot:
                     for action in self.action_space
                 ]
                 action_values_np = np.array(action_values)
-                
-                new_action = np.argmin(action_values_np)
+                new_action = int(np.argmin(action_values_np))
 
                 if new_action != self.policy[b_ind][c_ind]:
                     stable = False
@@ -111,17 +110,18 @@ class WithBot:
 
             num_iter += 1
 
-            if num_iter % 15 == 0:
+            if num_iter % 5 == 0:
                 print("saving values and policy matrices")
-                np.save(f"data/values-ch{num_iter//15}.npy", values)
-                np.save(f"data/policy-ch{num_iter//15}.npy", self.policy)
+                np.save(f"data/values-ch{num_iter//5}.npy", values)
+                np.save(f"data/policy-ch{num_iter//5}.npy", self.policy)
 
             print("policy iteration", num_iter)
     
         return values, self.policy
 
     def is_adj(self, a, b):
-        return abs(a[0] - b[0]) <= 1 and abs(a[1] - b[1]) <= 1
+        # only in cardinal directions
+        return abs(a[0] - b[0]) + abs(a[1] - b[1]) == 1
     
 
     def compute_bot_actions(self, botPos, crewPos):
