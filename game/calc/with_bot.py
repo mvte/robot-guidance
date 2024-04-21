@@ -1,4 +1,4 @@
-import cupy as np
+import numpy as np
 from game.ship import Node
 
 # policy iteration
@@ -90,27 +90,43 @@ class WithBot:
         num_iter = 0
         while not stable:
             stable = True
+            # check for convergence of the values matrix 
+            values_prev = self.values.copy()
             values = self.policy_evaluation(self.policy)
+            self.values = values
+            if num_iter != 0 and np.allclose(values, values_prev, rtol=1e-10, atol=1e-12):
+                print("values arbitrarily close: stopping policy iteration")
+                break
+            
+            # iterate through all possible states
             for (b1, b2), (c1, c2) in self.cell_pairs:
                 b_ind = self.open_cells[(b1, b2)]
                 c_ind = self.open_cells[(c1, c2)]
 
+                # determine the set of all possible actions
                 allowed_actions = self.compute_bot_actions((b1, b2), (c1, c2))
+
+                # compute the action values for each action
                 action_values = [
                     self.compute_action_value((b1, b2), (c1, c2), values, action, allowed_actions) 
                     for action in self.action_space
                 ]
+
+                # determine the action that minimizes the action values
                 action_values_np = np.array(action_values)
                 new_action = int(np.argmin(action_values_np))
 
+                # check if the action has changed
                 if new_action != self.policy[b_ind][c_ind]:
                     stable = False
 
+                # update the action in the policy matrix
                 self.policy[b_ind][c_ind] = new_action
 
             num_iter += 1
 
-            if num_iter % 5 == 0:
+            # save the values and policy matrices every 50 iterations
+            if num_iter % 50 == 0:
                 print("saving values and policy matrices")
                 np.save(f"data/values-ch{num_iter//5}.npy", values)
                 np.save(f"data/policy-ch{num_iter//5}.npy", self.policy)
@@ -125,6 +141,7 @@ class WithBot:
     
 
     def compute_bot_actions(self, botPos, crewPos):
+        # memoization
         if (botPos, crewPos) in self.bot_actions:
             return self.bot_actions[(botPos, crewPos)]
     
@@ -153,6 +170,7 @@ class WithBot:
 
     # the crewmate randomly chooses the cell that maximizes the distance from the bot if they're adjacent
     def compute_crew_responses(self, botPos, crewPos):
+        # memoization
         if (botPos, crewPos) in self.crew_responses:
             return self.crew_responses[(botPos, crewPos)]
 
