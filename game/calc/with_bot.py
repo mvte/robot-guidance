@@ -2,7 +2,7 @@ import numpy as np
 from game.ship import Node
 
 # policy iteration
-class WithBot:
+class PolicyIteration:
     action_space = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
     def __init__(self, board, values=None, policy=None):
