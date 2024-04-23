@@ -6,7 +6,7 @@ import datetime
 
 from game.ship import Ship, printBoard
 from game.calc.no_bot import t_no_bot, uev
-from game.calc.with_bot import WithBot
+from game.calc.with_bot import PolicyIteration
 
 import numpy as np
 import seaborn as sns
@@ -33,6 +33,12 @@ def main():
             calc_t_bot(use_existing)
         case "show_data":
             show_data()
+        case "show_policy":
+            crewPos = (int(sys.argv[2]), int(sys.argv[3]))
+            show_policy(crewPos)
+        case "show_values":
+            botPos = (int(sys.argv[2]), int(sys.argv[3]))
+            show_values(botPos)
         case _:
             print("invalid command")
 
@@ -80,11 +86,11 @@ def calc_t_bot(use_existing):
     if use_existing:
         values = np.load(f"values.npy")
         policy = np.load(f"policy.npy")
-        wb = WithBot(ship.board, values, policy)
+        polyIter = PolicyIteration(ship.board, values, policy)
     else:
-        wb = WithBot(ship.board)
+        polyIter = PolicyIteration(ship.board)
 
-    values, policy = wb.policy_iteration()
+    values, policy = polyIter.policy_iteration()
 
     # save the values and policy matrices
     np.save(f"values.npy", values)
@@ -92,11 +98,11 @@ def calc_t_bot(use_existing):
 
     # fix one bot position, and reshape the values array, and plot it
     botPos = (0, 0)
-    bot_index = wb.open_cells[botPos]
+    bot_index = polyIter.open_cells[botPos]
     values = values[bot_index]
     reshaped = np.full((len(ship.board), len(ship.board)), np.nan)
 
-    for cell, index in wb.open_cells.items():
+    for cell, index in polyIter.open_cells.items():
         i, j = cell
         reshaped[i][j] = values[index]
 
@@ -107,22 +113,22 @@ def calc_t_bot(use_existing):
 def show_data():
     ship = Ship(fromFile = True)
     printBoard(ship.board)
-    wb = WithBot(ship.board)
+    polyIter = PolicyIteration(ship.board)
 
     values = np.load(f"values.npy")
     policy = np.load(f"policy.npy")
 
     botPos = (0, 0)
-    bot_index = wb.open_cells[botPos]
+    bot_index = polyIter.open_cells[botPos]
     values = values[bot_index]
     reshaped_values = np.full((len(ship.board), len(ship.board)), np.nan)
 
     crewPos = (3,4)
-    crew_index = wb.open_cells[crewPos]
+    crew_index = polyIter.open_cells[crewPos]
     policy = policy[:,crew_index]
     reshaped_policy = np.full((len(ship.board), len(ship.board)), np.nan)
 
-    for cell, index in wb.open_cells.items():
+    for cell, index in polyIter.open_cells.items():
         i, j = cell
         reshaped_values[i][j] = values[index]
         reshaped_policy[i][j] = policy[index]
@@ -136,13 +142,55 @@ def show_data():
     labels = [[" " for _ in range(len(ship.board))] for _ in range(len(ship.board))]
     for i in range(len(ship.board)):
         for j in range(len(ship.board)):
-            if (i, j) in wb.open_cells:
+            if (i, j) in polyIter.open_cells:
                 labels[i][j] = directions[int(reshaped_policy[i][j])]
 
     sns.heatmap(reshaped_policy, vmax = 10, annot=labels, fmt="s")
     plt.show()
 
 
+def show_policy(crewPos):
+    ship = Ship(fromFile = True)
+    printBoard(ship.board)
+    polyIter = PolicyIteration(ship.board)
+
+    policy = np.load(f"policy.npy")
+    crew_index = polyIter.open_cells[crewPos]
+    policy = policy[:,crew_index]
+    reshaped_policy = np.full((len(ship.board), len(ship.board)), np.nan)
+
+    for cell, index in polyIter.open_cells.items():
+        i, j = cell
+        reshaped_policy[i][j] = policy[index]
+
+    # action_space = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    directions = ["-", "→", "←", "↓", "↑", "↘", "↙", "↗", "↖"]
+    labels = [[" " for _ in range(len(ship.board))] for _ in range(len(ship.board))]
+    for i in range(len(ship.board)):
+        for j in range(len(ship.board)):
+            if (i, j) in polyIter.open_cells:
+                labels[i][j] = directions[int(reshaped_policy[i][j])]
+
+    sns.heatmap(reshaped_policy, vmax = 10, annot=labels, fmt="s")
+    plt.show()
+
+
+def show_values(botPos):
+    ship = Ship(fromFile = True)
+    printBoard(ship.board)
+    polyIter = PolicyIteration(ship.board)
+
+    values = np.load(f"values.npy")
+    bot_index = polyIter.open_cells[botPos]
+    values = values[bot_index]
+    reshaped_values = np.full((len(ship.board), len(ship.board)), np.nan)
+
+    for cell, index in polyIter.open_cells.items():
+        i, j = cell
+        reshaped_values[i][j] = values[index]
+
+    sns.heatmap(reshaped_values, annot=True, fmt=".2f")
+    plt.show()
 
 if __name__ == "__main__":
     main()
