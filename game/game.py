@@ -52,7 +52,7 @@ class Game:
         print(self.config)
         print(self.suite)
 
-        self.sims = [Simulation(self.config, Ship(fromFile=True), crewmatePos=(2,8))]
+        self.sims = [Simulation(self.config, Ship(fromFile=True))]
 
         self.state = State.READY
 
@@ -92,7 +92,7 @@ class Game:
             return
 
         # use the same layout for now
-        self.sims = [Simulation(self.config, Ship(fromFile=True), crewmatePos=(2,8))]
+        self.sims = [Simulation(self.config, Ship(fromFile=True))]
 
         self.state = State.READY
 

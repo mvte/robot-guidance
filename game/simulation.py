@@ -19,8 +19,10 @@ class Simulation:
         self.ship = ship
         self.bot = None
         self.crew = None
+        botPos = (config["botPos"]["x"], config["botPos"]["y"])
+        crewmatePos = (config["crewPos"]["x"], config["crewPos"]["y"])
 
-        if config["bot"] != 0:
+        if config["bot"] != "none":
             self._placeBot(config["bot"], botPos)
 
         self._placeCrew(crewmatePos)
@@ -28,7 +30,7 @@ class Simulation:
     
     # places the bot in the given position, or a random open position if no position is given
     def _placeBot(self, whichBot, pos):
-        bot = botFactory(whichBot, self.ship, self.config["k"], pos, self.config["a"])
+        bot = botFactory(whichBot, pos, self.ship)
         self.bot = bot
 
 
@@ -61,7 +63,7 @@ class Simulation:
 
         # move the bot
         if self.bot:
-            self.bot.pos = self.bot.computeNextStep(self.ship, self.crewmate.pos)
+            self.bot.pos = self.bot.computeNextStep(self.ship, self.crew.pos)
             
 
         # move the crewmate
