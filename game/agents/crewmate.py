@@ -15,16 +15,18 @@ class Crewmate:
             return random.choice(moves)
 
         botX, botY = botPos
-        if botPos and abs(botX - x) <= 1 and abs(botY - y) <= 1:
+        if botPos and abs(x - botX) + abs(y - botY) == 1:
             maxDist = 0
-            bestMove = None
+            bestMoves = []
             for move in moves:
-                dx, dy = moves
-                dist = abs(botX - dx) + abs(botY - dy)
+                nx, ny = move
+                dist = abs(botX - nx) + abs(botY - ny)
+                if dist == maxDist:
+                    bestMoves.append(move)
                 if dist > maxDist:
                     maxDist = dist
-                    bestMove = move
-            return bestMove
+                    bestMoves = [move]
+            return random.choice(bestMoves)
 
         # if the bot is not adjacent to the crewmate, pick a random direction
         return random.choice(moves)
