@@ -10,7 +10,7 @@ if a node is False, then that node is closed and these^ cannot move into it
 class Ship:
 
     def __init__(self, dim=11, fromFile=False):
-        print("creating ship")
+        # print("creating ship")
 
         if not fromFile:
             tempBoard = generate_ship(dim)

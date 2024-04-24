@@ -84,7 +84,7 @@ class Simulation:
 
     def endSimulation(self):
         self.finished = True
-        print("\nsimulation has ended")
-        print("initial crew pos:", self.initialCrewPos)
-        print("num steps:", self.time)
+        # print("\nsimulation has ended")
+        # print("initial crew pos:", self.initialCrewPos)
+        # print("num steps:", self.time)
         

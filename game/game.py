@@ -59,7 +59,7 @@ class Game:
 
 
     def _handle_ready(self):
-        print("ready")
+        # print("ready")
         self.state = State.RUNNING
 
 
@@ -78,7 +78,7 @@ class Game:
 
     # transition to the next set of simulations
     def _handle_transition(self):
-        print("transitioning to next layout")
+        # print("transitioning to next layout")
 
         # update stats
         self.runs += 1
