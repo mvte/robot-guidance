@@ -207,9 +207,42 @@ class PolicyIteration:
 
             
 
-    
+def improvement(no_bot_values, with_bot_values, polyIter):
+    minimal_improvement = float("inf")
+    minimal_bot_pos = None
+    maximal_improvement = 0
+    maximal_bot_pos = None
+    average_improvement = 0
+
+    # iterate through each bot position and see how much its presence improves the crewmate's time
+    for botPos in polyIter.open_cells:
+        bot_index = polyIter.open_cells[botPos]
+        values_projection = with_bot_values[bot_index]
+
+        reshaped_values = np.full((11, 11), np.nan)
+        for cell, index in polyIter.open_cells.items():
+            i, j = cell
+            reshaped_values[i][j] = values_projection[index]
+
+        # ignore the bot's position
+        total = abs(np.nansum(no_bot_values - reshaped_values)) + no_bot_values[botPos]
+        improvement = total / (106)
+        print(botPos, improvement)
+        average_improvement += improvement
+
+        if improvement < minimal_improvement:
+            minimal_improvement = improvement
+            minimal_bot_pos = botPos
+        if improvement > maximal_improvement:
+            maximal_improvement = improvement
+            maximal_bot_pos = botPos
+
+    average_improvement /= len(polyIter.open_cells)
+
+    print("minimal improvement:", minimal_improvement)
+    print("minimal bot position:", minimal_bot_pos)
+    print("maximal improvement:", maximal_improvement)
+    print("maximal bot position:", maximal_bot_pos)
+    print("average improvement:", average_improvement)
 
 
-
-
-    

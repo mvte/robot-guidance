@@ -6,7 +6,7 @@ import datetime
 
 from game.ship import Ship, printBoard
 from game.calc.no_bot import t_no_bot, uev
-from game.calc.with_bot import PolicyIteration
+from game.calc.with_bot import PolicyIteration, improvement
 
 import numpy as np
 import seaborn as sns
@@ -74,6 +74,8 @@ def calc_t_no_bot():
     printBoard(ship.board)
 
     expected_time = t_no_bot(ship.board)
+    np.save("t_no_bot.npy", expected_time)
+
     print(uev(expected_time))
     sns.heatmap(expected_time, vmax=300, annot=True, fmt=".2f")
     plt.show()
@@ -118,9 +120,9 @@ def show_data():
     values = np.load(f"values.npy")
     policy = np.load(f"policy.npy")
 
-    botPos = (0, 0)
+    botPos = (0, 5)
     bot_index = polyIter.open_cells[botPos]
-    values = values[bot_index]
+    values_projection = values[bot_index]
     reshaped_values = np.full((len(ship.board), len(ship.board)), np.nan)
 
     crewPos = (3,4)
@@ -130,7 +132,7 @@ def show_data():
 
     for cell, index in polyIter.open_cells.items():
         i, j = cell
-        reshaped_values[i][j] = values[index]
+        reshaped_values[i][j] = values_projection[index]
         reshaped_policy[i][j] = policy[index]
 
 
@@ -147,6 +149,10 @@ def show_data():
 
     sns.heatmap(reshaped_policy, vmax = 10, annot=labels, fmt="s")
     plt.show()
+
+    # improvement
+    no_bot = np.load("t_no_bot.npy")
+    improvement(no_bot, values, polyIter)
 
 
 def show_policy(crewPos):
