@@ -8,6 +8,7 @@ from game.ship import Ship, printBoard
 from game.calc.no_bot import t_no_bot, uev
 from game.calc.with_bot import PolicyIteration, improvement, minimal_improvement_config, minimal_average_value
 
+import torch
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -31,6 +32,8 @@ def main():
         case "tb":
             use_existing = "use_existing" in sys.argv
             calc_t_bot(use_existing)
+        case "train":
+            train()
         case "show_data":
             show_data()
         case "show_policy":
@@ -173,6 +176,14 @@ def show_values(botPos):
 
     sns.heatmap(reshaped_values, annot=True, fmt=".2f")
     plt.show()
+
+
+def train():
+    # initialize gpu if available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # 
+
 
 if __name__ == "__main__":
     main()
