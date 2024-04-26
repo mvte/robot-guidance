@@ -6,7 +6,7 @@ import datetime
 
 from game.ship import Ship, printBoard
 from game.calc.no_bot import t_no_bot, uev
-from game.calc.with_bot import PolicyIteration, improvement
+from game.calc.with_bot import PolicyIteration, improvement, minimal_improvement_config, minimal_average_value
 
 import numpy as np
 import seaborn as sns
@@ -120,39 +120,15 @@ def show_data():
     values = np.load(f"values.npy")
     policy = np.load(f"policy.npy")
 
-    botPos = (0, 5)
-    bot_index = polyIter.open_cells[botPos]
-    values_projection = values[bot_index]
-    reshaped_values = np.full((len(ship.board), len(ship.board)), np.nan)
-
-    crewPos = (3,4)
-    crew_index = polyIter.open_cells[crewPos]
-    policy = policy[:,crew_index]
-    reshaped_policy = np.full((len(ship.board), len(ship.board)), np.nan)
-
-    for cell, index in polyIter.open_cells.items():
-        i, j = cell
-        reshaped_values[i][j] = values_projection[index]
-        reshaped_policy[i][j] = policy[index]
-
-
-    sns.heatmap(reshaped_values, annot=True, fmt=".2f")
-    plt.show()
-    
-    # action_space = [(0, 0), (0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-    directions = ["-", "→", "←", "↓", "↑", "↘", "↙", "↗", "↖"]
-    labels = [[" " for _ in range(len(ship.board))] for _ in range(len(ship.board))]
-    for i in range(len(ship.board)):
-        for j in range(len(ship.board)):
-            if (i, j) in polyIter.open_cells:
-                labels[i][j] = directions[int(reshaped_policy[i][j])]
-
-    sns.heatmap(reshaped_policy, vmax = 10, annot=labels, fmt="s")
-    plt.show()
-
-    # improvement
+    # average improvement
     no_bot = np.load("t_no_bot.npy")
     improvement(no_bot, values, polyIter)
+
+    # configuration with minimal improvement
+    minimal_improvement_config(no_bot, values, polyIter)
+
+    # position with minimal average time to escape
+    minimal_average_value(values, polyIter)
 
 
 def show_policy(crewPos):
