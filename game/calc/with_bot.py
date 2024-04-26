@@ -225,9 +225,8 @@ def improvement(no_bot_values, with_bot_values, polyIter):
             reshaped_values[i][j] = values_projection[index]
 
         # ignore the bot's position
-        total = abs(np.nansum(no_bot_values - reshaped_values)) + no_bot_values[botPos]
-        improvement = total / (106)
-        print(botPos, improvement)
+        improvement = (abs(np.nansum(no_bot_values - reshaped_values)) + no_bot_values[botPos]) 
+        improvement /= (106)
         average_improvement += improvement
 
         if improvement < minimal_improvement:
@@ -239,10 +238,67 @@ def improvement(no_bot_values, with_bot_values, polyIter):
 
     average_improvement /= len(polyIter.open_cells)
 
-    print("minimal improvement:", minimal_improvement)
+    print("minimal average improvement:", minimal_improvement)
     print("minimal bot position:", minimal_bot_pos)
-    print("maximal improvement:", maximal_improvement)
+    print("maximal average improvement:", maximal_improvement)
     print("maximal bot position:", maximal_bot_pos)
-    print("average improvement:", average_improvement)
+    print("average overall improvement:", average_improvement)
 
 
+def minimal_improvement_config(no_bot_values, with_bot_values, polyIter): 
+    # finds the configuration with minimal improvement
+
+    improvementList = []
+
+    for botPos in polyIter.open_cells:
+        bot_index = polyIter.open_cells[botPos]
+        values_projection = with_bot_values[bot_index]
+        reshaped_values = np.full((11, 11), np.nan)
+        for cell, index in polyIter.open_cells.items():
+            i, j = cell
+            reshaped_values[i][j] = values_projection[index]
+
+        for crewPos in polyIter.open_cells:
+            if crewPos == botPos:
+                continue
+            if crewPos == polyIter.tp:
+                continue
+            improvement = abs(no_bot_values[crewPos] - reshaped_values[crewPos]) / no_bot_values[crewPos]
+
+            improvementList.append((improvement, botPos, crewPos))   
+    
+    print("minimal improvement configuration:")
+    improvementList.sort(key=lambda x: x[0])
+    for i in range(10):
+        print(improvementList[i])
+
+
+def minimal_average_value(with_bot_values, polyIter):
+    # finds the bot position with minimal average value
+
+    averagesList = []
+
+    for botPos in polyIter.open_cells:
+        bot_index = polyIter.open_cells[botPos]
+        values_projection = with_bot_values[bot_index]
+
+        reshaped_values = np.full((11, 11), np.nan)
+        for cell, index in polyIter.open_cells.items():
+            i, j = cell
+            reshaped_values[i][j] = values_projection[index]
+
+        reshaped_values[botPos] = np.nan
+        average = np.nanmean(reshaped_values)
+
+        averagesList.append((average, botPos))
+
+    print("minimal average value:")
+    averagesList.sort(key=lambda x: x[0])
+    for i in range(10):
+        print(averagesList[i])
+
+    for i in range(len(averagesList)):
+        if averagesList[i][1] == polyIter.tp:
+            print("teleport pad found at index", i)
+            print("average value:", averagesList[i][0])
+            break
