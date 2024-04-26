@@ -179,11 +179,8 @@ def show_values(botPos):
 
 
 def train():
-    # initialize gpu if available
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # 
-
+    from game.calc.learned import train as learn
+    learn()
 
 if __name__ == "__main__":
     main()
