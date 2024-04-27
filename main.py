@@ -7,6 +7,7 @@ import datetime
 from game.ship import Ship, printBoard
 from game.calc.no_bot import t_no_bot, uev
 from game.calc.with_bot import PolicyIteration, improvement, minimal_improvement_config, minimal_average_value
+from game.calc.learned import test_accuracy
 
 import torch
 import numpy as np
@@ -132,6 +133,9 @@ def show_data():
 
     # position with minimal average time to escape
     minimal_average_value(values, polyIter)
+
+    # learned bot accuracy
+    test_accuracy()
 
 
 def show_policy(crewPos):
