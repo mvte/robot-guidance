@@ -16,7 +16,11 @@ Bot Position Encoding Stack (11x11)      Crew Position Encoding Stack (11x11)   
                             \                               |                               /
                                                     Linear Layer (128)
                                                             |
+                                                    Linear Layer (64)
+                                                            |
                                                      Output Layer (9)
+                                                            |
+                                                   Masked Output Layer (9)
 
 
 
