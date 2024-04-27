@@ -36,7 +36,7 @@ class Simulation:
 
     # places the crewmate in the given position, or a random open position if no position is given
     def _placeCrew(self, crewPos):
-        if crewPos:
+        if crewPos != (-1, -1):
             self.crew = Crewmate(crewPos)
         else:
             while True:
