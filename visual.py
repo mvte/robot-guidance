@@ -35,7 +35,7 @@ class Visual:
 
         self.fig.canvas.draw()
 
-        plt.pause(0.0001)
+        plt.pause(0.01)
     
 
     def _remap(self, board):
