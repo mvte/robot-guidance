@@ -24,6 +24,7 @@ class Ship:
         self.board = tempBoard
         self.dim = dim
 
+
     def getShip(self):
         return self.board
     
@@ -61,17 +62,43 @@ def generate_ship(dim):
         ship[mdpt + dx][mdpt + dy] = Node.CLOSED
 
     # 10 random closed nodes
-    for i in range(10):
+    for _ in range(10):
         x = random.randint(0, dim - 1)
         y = random.randint(0, dim - 1)
-        while ship[x][y] == Node.CLOSED or (abs(x - mdpt) < 3 and abs(y - mdpt) < 3):
+        while (x, y) == (mdpt, mdpt) or ship[x][y] == Node.CLOSED or (abs(x - mdpt) < 3 and abs(y - mdpt) < 3):
             x = random.randint(0, dim - 1)
             y = random.randint(0, dim - 1)
-
         ship[x][y] = Node.CLOSED
     
-    # make sure that the teleport pad entrances are not obstructed
+    # make sure that all open nodes reachable from the teleport pad 
+    while floodFill(ship, (mdpt, mdpt)) != dim * dim - 14:
+        ship = generate_ship(dim)
+
     return ship
+
+
+def floodFill(ship, start):
+    dim = len(ship)
+    visited = [[False for i in range(dim)] for j in range(dim)]
+    stack = [start]
+    visited[start[0]][start[1]] = True
+    count = 1
+
+    while stack:
+        x, y = stack.pop()
+        dirs = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        for dir in dirs:
+            dx, dy = dir
+            if x + dx < 0 or x + dx >= dim or y + dy < 0 or y + dy >= dim:
+                continue
+            if visited[x + dx][y + dy]:
+                continue
+            if ship[x + dx][y + dy] == Node.CLOSED:
+                continue
+            stack.append((x + dx, y + dy))
+            visited[x + dx][y + dy] = True
+            count += 1
+    return count
 
 
 def generate_ship_from_file(dim, closed):
@@ -84,7 +111,6 @@ def generate_ship_from_file(dim, closed):
     ship[mdpt][mdpt] = Node.TP
     
     return ship
-
 
 
 def printBoard(ship):

@@ -5,31 +5,34 @@ import math
 import random
 
 class Simulation:
-    # config
-    ship = None
-    bot = None
-    crew = None
-    finished = False
-
-    # state
-    time = 0
-
     def __init__(self, config, ship, botPos = None, crewmatePos = None):
         self.config = config
         self.ship = ship
         self.bot = None
         self.crew = None
+
+        self.time = 0
+        self.finished = False
+
         botPos = (config["botPos"]["x"], config["botPos"]["y"])
         crewmatePos = (config["crewPos"]["x"], config["crewPos"]["y"])
+
+        self._placeCrew(crewmatePos)
 
         if config["bot"] != "none":
             self._placeBot(config["bot"], botPos)
 
-        self._placeCrew(crewmatePos)
-
     
     # places the bot in the given position, or a random open position if no position is given
     def _placeBot(self, whichBot, pos):
+        if pos == (-1, -1):
+            while True:
+                x = random.randint(0, self.ship.dim - 1)
+                y = random.randint(0, self.ship.dim - 1)
+                if self.ship.board[x][y] == Node.OPEN and self.crew.pos != (x, y):
+                    pos = (x, y)
+                    break      
+
         bot = botFactory(whichBot, pos, self.ship)
         self.bot = bot
 

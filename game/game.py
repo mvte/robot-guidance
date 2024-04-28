@@ -52,7 +52,11 @@ class Game:
         print(self.config)
         print(self.suite)
 
-        self.sims = [Simulation(self.config, Ship(fromFile=True))]
+        fromFile = True
+        if self.config["bot"] == "generalized":
+            fromFile = False
+
+        self.sims = [Simulation(self.config, Ship(fromFile=fromFile))]
 
         self.state = State.READY
 
@@ -91,8 +95,10 @@ class Game:
             self.state = State.DONE
             return
 
-        # use the same layout for now
-        self.sims = [Simulation(self.config, Ship(fromFile=True))]
+        fromFile = True
+        if self.config["bot"] == "generalized":
+            fromFile = False
+        self.sims = [Simulation(self.config, Ship(fromFile=fromFile))]
 
         self.state = State.READY
 

@@ -1,12 +1,13 @@
 {
     "dim": 11,
-    "bot": "learned",
-    "crewPos": {
-        "x": 9,
-        "y": 2
-    },
+    "bot": "generalized",
     "botPos": {
-        "x": 3,
-        "y": 4
+        "x": -1,
+        "y": -1
+    },
+    "crewPos": {
+        "x": -1,
+        "y": -1
     }
+    
 }
