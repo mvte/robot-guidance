@@ -35,6 +35,8 @@ def main():
             calc_t_bot(use_existing)
         case "train":
             train()
+        case "train_general":
+            train_general()
         case "show_data":
             show_data()
         case "show_policy":
@@ -184,6 +186,10 @@ def show_values(botPos):
 
 def train():
     from game.calc.learned import train as learn
+    learn()
+
+def train_general():
+    from game.calc.generalized import learn
     learn()
 
 if __name__ == "__main__":
