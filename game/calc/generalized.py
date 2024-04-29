@@ -129,7 +129,7 @@ def learn(load=False):
     num_epochs = 10000
     epsilon = 0.2
     update_epochs = 4
-    lr_actor = 0.0003
+    lr_actor = 0.0001
     lr_critic = 0.001
 
     # use gpu if available
@@ -232,7 +232,7 @@ def learn(load=False):
                 returns = advantages + values
                 critic_loss = nn.MSELoss()(values_pred, returns)
 
-                total_loss = loss + 0.5 * critic_loss - 0.1 * entropy
+                total_loss = loss + 0.5 * critic_loss - 0.01 * entropy
 
                 # optimize
                 optimizer.zero_grad()
@@ -297,9 +297,14 @@ def calculate_reward(sim, old_bot_pos, old_crew_pos, bot_pos, crew_pos):
     
     # negative reward for being far from the crewmate
     reward -= (abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]))
+
+    # negative reward for the crewmate being far from the teleport pad
+    crew_dist = abs(crew_pos[0] - 5) + abs(crew_pos[1] - 5)
+    reward -= crew_dist * 2
     
     # encourage being adjacent to the crewmate
-    if abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1:
+    adj = abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1
+    if adj:
         reward += 10
     
     # encourage moving towards the crewmate, and discourage moving away
@@ -311,13 +316,13 @@ def calculate_reward(sim, old_bot_pos, old_crew_pos, bot_pos, crew_pos):
         reward -= 15
     
     # encourage placing the crewmate between the bot and the teleport pad, and discourage incorrect positioning
-    if abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1:
-        crew_dist = abs(crew_pos[0] - 5) + abs(crew_pos[1] - 5)
+    close = abs(bot_pos[0] - crew_pos[0]) < 2 and abs(bot_pos[1] - crew_pos[1]) < 2
+    if adj or close:
         bot_dist = abs(bot_pos[0] - 5) + abs(bot_pos[1] - 5)
         if crew_dist < bot_dist:
             reward += 30
         else:
-            reward -= 10
+            reward -= 25
 
     return reward
 
