@@ -3,6 +3,7 @@ from visual import Visual
 import sys
 import json
 import datetime
+import traceback
 
 from game.ship import Ship, printBoard
 from game.calc.no_bot import t_no_bot, uev
@@ -197,10 +198,12 @@ def train_general(load):
         try:
             learn(load)
             break
-        except:
+        except AssertionError as e:
+            traceback.print_exc()
             load = True
             attempts += 1
-            print("failed, trying again")
+            if attempts < 10:
+                print("failed, trying again")
 
 if __name__ == "__main__":
     main()
