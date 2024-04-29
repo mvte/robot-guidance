@@ -125,10 +125,10 @@ def learn(load=False):
 
     # hyperparameters
     gamma = 0.99
-    max_steps = 50
+    max_steps = 100
     num_epochs = 10000
-    epsilon = 0.2
-    update_epochs = 4
+    epsilon = 0.1
+    update_epochs = 3
     lr_actor = 0.0001
     lr_critic = 0.001
 
@@ -157,7 +157,7 @@ def learn(load=False):
 
     for epoch in range(num_epochs):
         # collect data on various ship layouts
-        for _ in range(10):
+        for _ in range(20):
             play(config, device, net, critic, memory, max_steps)
             memory.ep_indices.append(len(memory.states))
 
@@ -225,14 +225,14 @@ def learn(load=False):
 
                 # # debug variables
                 # with torch.no_grad():
-                #     kl = ((ratios - 1) - (logprobs_new - logprobs.detach())).mean().item()
+                #     kl = ((ratios.detach() - 1) - (logprobs_new.detach() - logprobs.detach().squeeze())).mean().item()
                 #     print(f"kl: {kl}")
 
                 # compute loss for critic
                 returns = advantages + values
                 critic_loss = nn.MSELoss()(values_pred, returns)
 
-                total_loss = loss + 0.5 * critic_loss - 0.01 * entropy
+                total_loss = loss + 0.5 * critic_loss
 
                 # optimize
                 optimizer.zero_grad()
@@ -263,7 +263,7 @@ def learn(load=False):
     torch.save(net.state_dict(), "generalized_bot.pth")
 
 
-def create_minibatches(memory, advantages_all, batch_size=64):
+def create_minibatches(memory, advantages_all, batch_size=512):
     bot, crew, ship, valid_moves = zip(*memory.states)
     experiences = list(zip(bot, crew, ship, valid_moves, memory.actions, memory.logprobs, memory.rewards, memory.values, advantages_all))
     np.random.shuffle(experiences)
@@ -293,14 +293,14 @@ def calculate_reward(sim, old_bot_pos, old_crew_pos, bot_pos, crew_pos):
 
     # positive reward for reaching the teleport pad
     if crew_pos == (5, 5):
-        return 100
+        return 500.0
     
     # negative reward for being far from the crewmate
     reward -= (abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]))
 
     # negative reward for the crewmate being far from the teleport pad
     crew_dist = abs(crew_pos[0] - 5) + abs(crew_pos[1] - 5)
-    reward -= crew_dist * 2
+    reward -= crew_dist * 5
     
     # encourage being adjacent to the crewmate
     adj = abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1
