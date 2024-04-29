@@ -191,7 +191,16 @@ def train():
 
 def train_general(load):
     from game.calc.generalized import learn
-    learn(load)
+
+    attempts = 0
+    while attempts < 10:
+        try:
+            learn(load)
+            break
+        except:
+            load = True
+            attempts += 1
+            print("failed, trying again")
 
 if __name__ == "__main__":
     main()
