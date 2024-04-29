@@ -1,6 +1,7 @@
 {
     "dim": 11,
     "bot": "generalized",
+    "fromFile": true,
     "botPos": {
         "x": -1,
         "y": -1

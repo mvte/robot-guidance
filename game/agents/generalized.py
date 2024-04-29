@@ -11,7 +11,7 @@ class GeneralizedBot():
         self.polyIter = PolicyIteration(ship.board)
 
         self.model = GeneralNetwork()
-        self.model.load_state_dict(torch.load("generalized_bot.pth"))
+        self.model.load_state_dict(torch.load("data/generalized_bot_chk.pth"))
         self.model
         self.shipTensor = torch.zeros(121)
         for i in range(11):
@@ -34,8 +34,8 @@ class GeneralizedBot():
                 validMoveTensor[i] = 1
 
         with torch.no_grad():
-            dist = self.model(posTensor[None,:], crewTensor[None,:], self.shipTensor[None,:], validMoveTensor[None,:])
-            action_idx = dist.sample()
+            output = self.model(posTensor[None,:], crewTensor[None,:], self.shipTensor[None,:], validMoveTensor[None,:])
+            action_idx = output.argmax(dim=1)
 
         action = GeneralNetwork.ACTION_SPACE[action_idx.item()]
         return (self.pos[0] + action[0], self.pos[1] + action[1])
