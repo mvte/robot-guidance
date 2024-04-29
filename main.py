@@ -36,7 +36,8 @@ def main():
         case "train":
             train()
         case "train_general":
-            train_general()
+            load = "load" in sys.argv
+            train_general(load)
         case "show_data":
             show_data()
         case "show_policy":
@@ -188,9 +189,9 @@ def train():
     from game.calc.learned import train as learn
     learn()
 
-def train_general():
+def train_general(load):
     from game.calc.generalized import learn
-    learn()
+    learn(load)
 
 if __name__ == "__main__":
     main()
