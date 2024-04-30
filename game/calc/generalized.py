@@ -125,12 +125,12 @@ def learn(load=False):
 
     # hyperparameters
     gamma = 0.99
-    max_steps = 100
+    max_steps = 200
     num_epochs = 10000
-    epsilon = 0.1
+    epsilon = 0.2
     update_epochs = 3
-    lr_actor = 0.0001
-    lr_critic = 0.001
+    lr_actor = 0.00001
+    lr_critic = 0.0001
 
     # use gpu if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -225,14 +225,16 @@ def learn(load=False):
 
                 # # debug variables
                 # with torch.no_grad():
-                #     kl = ((ratios.detach() - 1) - (logprobs_new.detach() - logprobs.detach().squeeze())).mean().item()
-                #     print(f"kl: {kl}")
+                #     if j == 0 and i == 0:
+                #         kl = ((ratios.detach() - 1) - (logprobs_new.detach() - logprobs.detach().squeeze())).mean().item()
+                #         print(f"kl: {kl}")
+                #         print(f"entropy: {entropy.item()}")
 
                 # compute loss for critic
                 returns = advantages + values
-                critic_loss = nn.MSELoss()(values_pred, returns)
+                critic_loss = nn.MSELoss()(values_pred.squeeze(), returns.squeeze())
 
-                total_loss = loss + 0.5 * critic_loss
+                total_loss = loss + 0.5 * critic_loss - 0.01 * entropy
 
                 # optimize
                 optimizer.zero_grad()
@@ -298,9 +300,9 @@ def calculate_reward(sim, old_bot_pos, old_crew_pos, bot_pos, crew_pos):
     # negative reward for being far from the crewmate
     reward -= (abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]))
 
-    # negative reward for the crewmate being far from the teleport pad
+    # positive reward for the crewmate being close to the teleport pad 
     crew_dist = abs(crew_pos[0] - 5) + abs(crew_pos[1] - 5)
-    reward -= crew_dist * 5
+    reward += 1 / crew_dist * 5
     
     # encourage being adjacent to the crewmate
     adj = abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1
@@ -313,7 +315,7 @@ def calculate_reward(sim, old_bot_pos, old_crew_pos, bot_pos, crew_pos):
     if new_dist < old_dist:
         reward += 20
     else:
-        reward -= 15
+        reward -= 10
     
     # encourage placing the crewmate between the bot and the teleport pad, and discourage incorrect positioning
     close = abs(bot_pos[0] - crew_pos[0]) < 2 and abs(bot_pos[1] - crew_pos[1]) < 2
