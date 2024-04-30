@@ -163,6 +163,9 @@ def show_policy(crewPos):
         for j in range(len(ship.board)):
             if (i, j) in polyIter.open_cells:
                 labels[i][j] = directions[int(reshaped_policy[i][j])]
+            if (i,j) == crewPos:
+                labels[i][j] = "Cr"
+            
 
     sns.heatmap(reshaped_policy, vmax = 10, annot=labels, fmt="s")
     plt.show()
