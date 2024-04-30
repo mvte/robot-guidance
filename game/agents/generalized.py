@@ -11,7 +11,7 @@ class GeneralizedBot():
         self.polyIter = PolicyIteration(ship.board)
 
         self.model = GeneralNetwork()
-        self.model.load_state_dict(torch.load("data/generalized_bot_chk.pth"))
+        self.model.load_state_dict(torch.load("generalized_bot.pth"))
         self.model
         self.shipTensor = torch.zeros(121)
         for i in range(11):
