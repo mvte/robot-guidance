@@ -20,9 +20,9 @@ class GeneralNetwork(nn.Module):
         self.crewEncoder = nn.Linear(121, 64)
         self.shipEncoder = nn.Linear(121, 64)
 
-        self.fc1 = nn.Linear(192, 256)
-        self.fc2 = nn.Linear(256, 128)
-        self.output = nn.Linear(128, 9)
+        self.fc1 = nn.Linear(192, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.output = nn.Linear(64, 9)
 
 
     def forward(self, bot, crew, ship, valid_moves):
@@ -36,9 +36,9 @@ class GeneralNetwork(nn.Module):
         shipEncoded = self.shipEncoder(ship)
 
         x = torch.cat((botEncoded, crewEncoded, shipEncoded), dim=1)
-        x = torch.tanh(x)
-        x = torch.tanh(self.fc1(x))
-        x = torch.tanh(self.fc2(x))
+        x = torch.relu(x)
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
 
         x = self.output(x)
         # send invalid moves to neg inf (or close enough to it)
@@ -55,9 +55,9 @@ class CriticNetwork(nn.Module):
         self.crewEncoder = nn.Linear(121, 64)
         self.shipEncoder = nn.Linear(121, 64)
 
-        self.fc1 = nn.Linear(192, 256)
-        self.fc2 = nn.Linear(256, 128)
-        self.output = nn.Linear(128, 1)
+        self.fc1 = nn.Linear(192, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.output = nn.Linear(64, 1)
 
 
     def forward(self, bot, crew, ship):
@@ -66,9 +66,9 @@ class CriticNetwork(nn.Module):
         shipEncoded = self.shipEncoder(ship)
 
         x = torch.cat((botEncoded, crewEncoded, shipEncoded), dim=1)
-        x = torch.tanh(x)
-        x = torch.tanh(self.fc1(x))
-        x = torch.tanh(self.fc2(x))
+        x = torch.relu(x)
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
 
         x = self.output(x)
 
@@ -129,8 +129,9 @@ def learn(load=False):
     num_epochs = 10000
     epsilon = 0.2
     update_epochs = 3
-    lr_actor = 0.00001
-    lr_critic = 0.0001
+    num_envs = 20
+    lr_actor = 0.0003
+    lr_critic = 0.001
 
     # use gpu if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -157,7 +158,7 @@ def learn(load=False):
 
     for epoch in range(num_epochs):
         # collect data on various ship layouts
-        for _ in range(20):
+        for _ in range(num_envs):
             play(config, device, net, critic, memory, max_steps)
             memory.ep_indices.append(len(memory.states))
 
@@ -231,16 +232,14 @@ def learn(load=False):
                 #         print(f"entropy: {entropy.item()}")
 
                 # compute loss for critic
-                returns = advantages + values
-                critic_loss = nn.MSELoss()(values_pred.squeeze(), returns.squeeze())
+                returns = advantages - values
+                critic_loss = nn.MSELoss()(values_pred, returns.squeeze())
 
                 total_loss = loss + 0.5 * critic_loss - 0.01 * entropy
 
                 # optimize
                 optimizer.zero_grad()
                 critic_optimizer.zero_grad()
-                nn.utils.clip_grad_norm_(net.parameters(), 0.5)
-                nn.utils.clip_grad_norm_(critic.parameters(), 0.5)
                 total_loss.backward()
                 optimizer.step()
                 critic_optimizer.step()
@@ -297,34 +296,36 @@ def calculate_reward(sim, old_bot_pos, old_crew_pos, bot_pos, crew_pos):
     if crew_pos == (5, 5):
         return 500.0
     
-    # negative reward for being far from the crewmate
-    reward -= (abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]))
+    
+    # # negative reward for being far from the crewmate
+    # reward -= (abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]))
+
 
     # positive reward for the crewmate being close to the teleport pad 
     crew_dist = abs(crew_pos[0] - 5) + abs(crew_pos[1] - 5)
     reward += 1 / crew_dist * 5
     
-    # encourage being adjacent to the crewmate
-    adj = abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1
-    if adj:
-        reward += 10
+    # # encourage being adjacent to the crewmate
+    # adj = abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1
+    # if adj:
+    #     reward += 10
     
-    # encourage moving towards the crewmate, and discourage moving away
-    old_dist = abs(old_bot_pos[0] - old_crew_pos[0]) + abs(old_bot_pos[1] - old_crew_pos[1])
-    new_dist = abs(bot_pos[0] - old_crew_pos[0]) + abs(bot_pos[1] - old_crew_pos[1])
-    if new_dist < old_dist:
-        reward += 20
-    else:
-        reward -= 10
+    # # encourage moving towards the crewmate, and discourage moving away
+    # old_dist = abs(old_bot_pos[0] - old_crew_pos[0]) + abs(old_bot_pos[1] - old_crew_pos[1])
+    # new_dist = abs(bot_pos[0] - old_crew_pos[0]) + abs(bot_pos[1] - old_crew_pos[1])
+    # if new_dist < old_dist:
+    #     reward += 20
+    # else:
+    #     reward -= 10
     
-    # encourage placing the crewmate between the bot and the teleport pad, and discourage incorrect positioning
-    close = abs(bot_pos[0] - crew_pos[0]) < 2 and abs(bot_pos[1] - crew_pos[1]) < 2
-    if adj or close:
-        bot_dist = abs(bot_pos[0] - 5) + abs(bot_pos[1] - 5)
-        if crew_dist < bot_dist:
-            reward += 30
-        else:
-            reward -= 25
+    # # encourage placing the crewmate between the bot and the teleport pad, and discourage incorrect positioning
+    # close = abs(bot_pos[0] - crew_pos[0]) < 2 and abs(bot_pos[1] - crew_pos[1]) < 2
+    # if adj or close:
+    #     bot_dist = abs(bot_pos[0] - 5) + abs(bot_pos[1] - 5)
+    #     if crew_dist < bot_dist:
+    #         reward += 30
+    #     else:
+    #         reward -= 25
 
     return reward
 
