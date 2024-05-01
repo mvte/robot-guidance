@@ -31,7 +31,8 @@ class BotNetwork(nn.Module):
         x = torch.relu(self.fc2(x))
 
         x = self.output(x)
-        x = x * valid_moves
+        # send invalid moves to neg inf (or close enough to it)
+        x[valid_moves == 0] = -1e6
 
         return x
     
