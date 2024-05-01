@@ -89,12 +89,10 @@ class Game:
         if self.runs == 10000:
             print("done")
             print("average time", sum(self.data) / len(self.data))
+            print("average rewards", sum(self.sims[0].rewards) / len(self.sims[0].rewards))
             self.state = State.DONE
             return
 
-        fromFile = True
-        if self.config["bot"] == "generalized":
-            fromFile = False
         self.sims = [Simulation(self.config, Ship(fromFile=self.fromFile))]
 
         self.state = State.READY

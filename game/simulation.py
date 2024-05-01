@@ -96,7 +96,6 @@ class Simulation:
     def endSimulation(self):
         self.finished = True
         # print(sum(self.rewards) / len(self.rewards))
-        self.rewards = []
         # print("\nsimulation has ended")
         # print("initial crew pos:", self.initialCrewPos)
         # print("num steps:", self.time)
@@ -147,32 +146,37 @@ class Simulation:
 
         # positive reward for reaching the teleport pad
         if crew_pos == (5, 5):
-            return 100
-        
-        # negative reward for being far from the crewmate
-        reward -= (abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]))
+            return 100.0
         
         # encourage being adjacent to the crewmate
-        if abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1:
-            reward += 10
-        
-        # encourage moving towards the crewmate, and discourage moving away
-        old_dist = abs(old_bot_pos[0] - old_crew_pos[0]) + abs(old_bot_pos[1] - old_crew_pos[1])
-        new_dist = abs(bot_pos[0] - old_crew_pos[0]) + abs(bot_pos[1] - old_crew_pos[1])
-        if new_dist < old_dist:
-            reward += 20
+        adj = abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1
+        if adj:
+            reward += 5
+
+        # encourage actions that push the crewmate closer to the teleport pad
+        close = abs(bot_pos[0] - crew_pos[0]) < 3 and abs(bot_pos[1] - crew_pos[1]) < 3
+        crew_dist = abs(crew_pos[0] - 5) + abs(crew_pos[1] - 5)
+        old_crew_dist = abs(old_crew_pos[0] - 5) + abs(old_crew_pos[1] - 5)
+        if close and crew_dist < old_crew_dist:
+            reward += 10 * (1/crew_dist)
         else:
-            reward -= 15
+            reward -= 0.5 * old_crew_dist
         
-        # encourage placing the crewmate between the bot and the teleport pad
-        if abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1:
-            crew_dist = abs(crew_pos[0] - 5) + abs(crew_pos[1] - 5)
-            bot_dist = abs(bot_pos[0] - 5) + abs(bot_pos[1] - 5)
-            if crew_dist < bot_dist:
-                reward += 30
-            
-        # # discourage staying still
-        # if old_bot_pos == bot_pos:
-        #     reward -= 0.1
+        # # encourage moving towards the crewmate, and discourage moving away
+        # old_dist = abs(old_bot_pos[0] - old_crew_pos[0]) + abs(old_bot_pos[1] - old_crew_pos[1])
+        # new_dist = abs(bot_pos[0] - old_crew_pos[0]) + abs(bot_pos[1] - old_crew_pos[1])
+        # if new_dist < old_dist:
+        #     reward += 15
+        # else:
+        #     reward -= 5
+        
+        # # encourage placing the crewmate between the bot and the teleport pad, and discourage incorrect positioning
+        # close = abs(bot_pos[0] - crew_pos[0]) < 2 and abs(bot_pos[1] - crew_pos[1]) < 2
+        # if adj or close:
+        #     bot_dist = abs(bot_pos[0] - 5) + abs(bot_pos[1] - 5)
+        #     if crew_dist < bot_dist:
+        #         reward += 30
+        #     else:
+        #         reward -= 10
 
         return reward
