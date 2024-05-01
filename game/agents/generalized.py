@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from game.ship import Node
 from game.calc.with_bot import PolicyIteration
-from game.calc.general_network import GeneralNetwork
+from game.calc.learned import BotNetwork
 
 class GeneralizedBot():
     def __init__(self, pos, ship):
@@ -10,8 +10,8 @@ class GeneralizedBot():
 
         self.polyIter = PolicyIteration(ship.board)
 
-        self.model = GeneralNetwork()
-        self.model.load_state_dict(torch.load("generalized_bot.pth"))
+        self.model = BotNetwork()
+        self.model.load_state_dict(torch.load("data/generalized_bot_chk.pth"))
         self.model
         self.shipTensor = torch.zeros(121)
         for i in range(11):
@@ -29,7 +29,7 @@ class GeneralizedBot():
         validMoveTensor = torch.zeros(9)
         validMoves = self.polyIter.compute_bot_actions(self.pos, crewPos)
 
-        for i, action in enumerate(GeneralNetwork.ACTION_SPACE):
+        for i, action in enumerate(BotNetwork.ACTION_SPACE):
             if action in validMoves:
                 validMoveTensor[i] = 1
 
@@ -37,5 +37,5 @@ class GeneralizedBot():
             output = self.model(posTensor[None,:], crewTensor[None,:], self.shipTensor[None,:], validMoveTensor[None,:])
             action_idx = output.argmax(dim=1)
 
-        action = GeneralNetwork.ACTION_SPACE[action_idx.item()]
+        action = BotNetwork.ACTION_SPACE[action_idx.item()]
         return (self.pos[0] + action[0], self.pos[1] + action[1])

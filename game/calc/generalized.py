@@ -101,9 +101,6 @@ class Memory():
         del self.values[:]
         del self.is_terminals[:]
 
-
-
-
 def learn(load=False):
     # initialize config to force the simulation to use random spawn points
     config = {
@@ -125,11 +122,11 @@ def learn(load=False):
 
     # hyperparameters
     gamma = 0.99
-    max_steps = 200
+    max_steps = 50
     num_epochs = 10000
     epsilon = 0.2
-    update_epochs = 3
-    num_envs = 20
+    update_epochs = 8
+    num_envs = 5
     lr_actor = 0.0003
     lr_critic = 0.001
 
@@ -145,6 +142,7 @@ def learn(load=False):
         critic.load_state_dict(torch.load("data/critic_chk.pth"))
     else:
         print("training from scratch")
+        net.load_state_dict(torch.load("bot.pth"))
         torch.save(net.state_dict(), "data/generalized_bot_chk.pth")
         torch.save(critic.state_dict(), "data/critic_chk.pth")  
         
@@ -193,13 +191,15 @@ def learn(load=False):
             
             # compute advantages
             advantages = returns.detach() - values[ep_start:ep_end].detach()
-            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-6)
             advantages_all.append(advantages)
+
         advantages_all = torch.cat(advantages_all)
 
-        # print some stats
+        # # print some stats
         # returns_all = torch.cat(returns_all)
-        # print("mean episodic return", returns_all.mean().item())
+        # print("mean return", returns_all.mean().item())
+        # with open("data/reward.csv", "a") as f:
+        #     f.write(f"{returns_all.mean().item()}\n")
 
         minibatches = create_minibatches(memory, advantages_all)
 
@@ -219,12 +219,13 @@ def learn(load=False):
                 values_pred = critic(bot, crew, ship).squeeze()      
 
                 # compute loss for actor (ppo clip loss)
+                advantages = advantages.squeeze()
                 ratios = torch.exp(logprobs_new - logprobs.squeeze())
                 surr1 = ratios * advantages
                 surr2 = torch.clamp(ratios, 1 - epsilon, 1 + epsilon) * advantages
                 loss = (-torch.min(surr1, surr2)).mean()
 
-                # # debug variables
+                # debug variables
                 # with torch.no_grad():
                 #     if j == 0 and i == 0:
                 #         kl = ((ratios.detach() - 1) - (logprobs_new.detach() - logprobs.detach().squeeze())).mean().item()
@@ -232,7 +233,8 @@ def learn(load=False):
                 #         print(f"entropy: {entropy.item()}")
 
                 # compute loss for critic
-                returns = advantages - values
+                values = values.squeeze()
+                returns = advantages + values
                 critic_loss = nn.MSELoss()(values_pred, returns.squeeze())
 
                 total_loss = loss + 0.5 * critic_loss - 0.01 * entropy
@@ -241,12 +243,18 @@ def learn(load=False):
                 optimizer.zero_grad()
                 critic_optimizer.zero_grad()
                 total_loss.backward()
+                nn.utils.clip_grad_norm_(net.parameters(), 0.5)
+                nn.utils.clip_grad_norm_(critic.parameters(), 0.5)
                 optimizer.step()
                 critic_optimizer.step()
 
-                for name, param in net.named_parameters():
-                    if torch.isnan(param).any():
-                        print(f'Parameter {name} has NaN value!')
+                # for name, param in net.named_parameters():
+                #     if torch.isnan(param.grad).any():
+                #         print(f'parameter {name} has nan grad')
+
+                # for name, param in critic.named_parameters():
+                #     if torch.isnan(param.grad).any():
+                #         print(f'critic parameter {name} has nan grad')
 
 
 
@@ -258,13 +266,14 @@ def learn(load=False):
             torch.save(critic.state_dict(), "data/critic_chk.pth")
 
         memory.clear()
+        memory.ep_indices = [0]
 
     # save the model
     net = net.to("cpu")
     torch.save(net.state_dict(), "generalized_bot.pth")
 
 
-def create_minibatches(memory, advantages_all, batch_size=512):
+def create_minibatches(memory, advantages_all, batch_size=64):
     bot, crew, ship, valid_moves = zip(*memory.states)
     experiences = list(zip(bot, crew, ship, valid_moves, memory.actions, memory.logprobs, memory.rewards, memory.values, advantages_all))
     np.random.shuffle(experiences)
@@ -282,6 +291,7 @@ def create_minibatches(memory, advantages_all, batch_size=512):
         rewards = torch.tensor(rewards).to("cuda")
         values = torch.tensor(values).to("cuda")
         advantages = torch.tensor(advantages).to("cuda")
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-6)
 
         minibatches.append((bot, crew, ship, valid_moves, action, logprobs, rewards, values, advantages))
 
@@ -294,29 +304,29 @@ def calculate_reward(sim, old_bot_pos, old_crew_pos, bot_pos, crew_pos):
 
     # positive reward for reaching the teleport pad
     if crew_pos == (5, 5):
-        return 500.0
+        return 100.0
     
-    
-    # # negative reward for being far from the crewmate
-    # reward -= (abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]))
+    # encourage being adjacent to the crewmate
+    adj = abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1
+    if adj:
+        reward += 5
 
-
-    # positive reward for the crewmate being close to the teleport pad 
+    # encourage actions that push the crewmate closer to the teleport pad
+    close = abs(bot_pos[0] - crew_pos[0]) < 3 and abs(bot_pos[1] - crew_pos[1]) < 3
     crew_dist = abs(crew_pos[0] - 5) + abs(crew_pos[1] - 5)
-    reward += 1 / crew_dist * 5
-    
-    # # encourage being adjacent to the crewmate
-    # adj = abs(bot_pos[0] - crew_pos[0]) + abs(bot_pos[1] - crew_pos[1]) == 1
-    # if adj:
-    #     reward += 10
+    old_crew_dist = abs(old_crew_pos[0] - 5) + abs(old_crew_pos[1] - 5)
+    if close and crew_dist < old_crew_dist:
+        reward += 10 * (1/crew_dist)
+    else:
+        reward -= 0.5 * old_crew_dist
     
     # # encourage moving towards the crewmate, and discourage moving away
     # old_dist = abs(old_bot_pos[0] - old_crew_pos[0]) + abs(old_bot_pos[1] - old_crew_pos[1])
     # new_dist = abs(bot_pos[0] - old_crew_pos[0]) + abs(bot_pos[1] - old_crew_pos[1])
     # if new_dist < old_dist:
-    #     reward += 20
+    #     reward += 15
     # else:
-    #     reward -= 10
+    #     reward -= 5
     
     # # encourage placing the crewmate between the bot and the teleport pad, and discourage incorrect positioning
     # close = abs(bot_pos[0] - crew_pos[0]) < 2 and abs(bot_pos[1] - crew_pos[1]) < 2
@@ -325,7 +335,7 @@ def calculate_reward(sim, old_bot_pos, old_crew_pos, bot_pos, crew_pos):
     #     if crew_dist < bot_dist:
     #         reward += 30
     #     else:
-    #         reward -= 25
+    #         reward -= 10
 
     return reward
 
@@ -375,7 +385,7 @@ def play(config, device, net, critic, memory, max_steps=50):
         reward = calculate_reward(sim, old_bot_pos, old_crew_pos, sim.bot.pos, sim.crew.pos)
 
         # add to memory
-        memory.add((bot, crew, ship, valid_moves), action, logprob, reward, value, 1 if sim.finished else 0)
+        memory.add((bot, crew, ship, valid_moves), action, logprob, reward, value, sim.finished)
 
         # update simulation
         old_crew_pos = sim.crew.pos
