@@ -201,7 +201,7 @@ def learn(load=False):
         # with open("data/reward.csv", "a") as f:
         #     f.write(f"{returns_all.mean().item()}\n")
 
-        minibatches = create_minibatches(memory, advantages_all)
+        minibatches = create_minibatches(memory, advantages_all, device)
 
         # ascend the policy gradient
         for i in range(update_epochs):
@@ -273,7 +273,7 @@ def learn(load=False):
     torch.save(net.state_dict(), "generalized_bot.pth")
 
 
-def create_minibatches(memory, advantages_all, batch_size=64):
+def create_minibatches(memory, advantages_all, device, batch_size=64):
     bot, crew, ship, valid_moves = zip(*memory.states)
     experiences = list(zip(bot, crew, ship, valid_moves, memory.actions, memory.logprobs, memory.rewards, memory.values, advantages_all))
     np.random.shuffle(experiences)
@@ -282,15 +282,15 @@ def create_minibatches(memory, advantages_all, batch_size=64):
     for i in range(0, len(experiences), batch_size):
         batch = experiences[i:i+batch_size]
         bot, crew, ship, valid_moves, action, logprobs, rewards, values, advantages = zip(*batch)
-        bot = torch.stack(bot).to("cuda")
-        crew = torch.stack(crew).to("cuda")
-        ship = torch.stack(ship).to("cuda")
-        valid_moves = torch.tensor(valid_moves).to("cuda")
-        action = torch.tensor(action).to("cuda")
-        logprobs = torch.stack(logprobs).to("cuda")
-        rewards = torch.tensor(rewards).to("cuda")
-        values = torch.tensor(values).to("cuda")
-        advantages = torch.tensor(advantages).to("cuda")
+        bot = torch.stack(bot).to(device)
+        crew = torch.stack(crew).to(device)
+        ship = torch.stack(ship).to(device)
+        valid_moves = torch.tensor(valid_moves).to(device)
+        action = torch.tensor(action).to(device)
+        logprobs = torch.stack(logprobs).to(device)
+        rewards = torch.tensor(rewards).to(device)
+        values = torch.tensor(values).to(device)
+        advantages = torch.tensor(advantages).to(device)
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-6)
 
         minibatches.append((bot, crew, ship, valid_moves, action, logprobs, rewards, values, advantages))
