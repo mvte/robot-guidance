@@ -102,8 +102,6 @@ class Memory():
         del self.is_terminals[:]
 
 
-
-
 def learn(load=False):
     # initialize config to force the simulation to use random spawn points
     config = {
@@ -192,7 +190,6 @@ def learn(load=False):
             
             # compute advantages
             advantages = returns.detach() - values[ep_start:ep_end].detach()
-            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-6)
             advantages_all.append(advantages)
         advantages_all = torch.cat(advantages_all)
 
@@ -218,6 +215,7 @@ def learn(load=False):
                 values_pred = critic(bot, crew, ship).squeeze()      
 
                 # compute loss for actor (ppo clip loss)
+                advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-6)
                 ratios = torch.exp(logprobs_new - logprobs.squeeze())
                 surr1 = ratios * advantages
                 surr2 = torch.clamp(ratios, 1 - epsilon, 1 + epsilon) * advantages
@@ -259,6 +257,7 @@ def learn(load=False):
             torch.save(critic.state_dict(), "data/critic_chk.pth")
 
         memory.clear()
+        memory.ep_indices = [0]
 
     # save the model
     net = net.to("cpu")
