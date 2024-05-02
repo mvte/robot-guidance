@@ -80,8 +80,9 @@ class Simulation:
             self.crew.pos = self.crew.computeNextStep(self.ship, None)
 
         # calculate reward
-        reward = self.calculate_reward(old_bot_pos, old_crew_pos, self.bot.pos, self.crew.pos)
-        self.rewards.append(reward)
+        if self.bot:
+            reward = self.calculate_reward(old_bot_pos, old_crew_pos, self.bot.pos, self.crew.pos)
+            self.rewards.append(reward)
 
         # check if the crewmate is on the teleport pad
         if self.ship.board[self.crew.pos[0]][self.crew.pos[1]] == Node.TP:
