@@ -64,9 +64,10 @@ class Simulation:
             return   
         
         self.time += 1
-
-        old_bot_pos = self.bot.pos
-        old_crew_pos = self.crew.pos
+        
+        if self.bot:
+            old_bot_pos = self.bot.pos
+            old_crew_pos = self.crew.pos
 
         # move the bot
         if self.bot:
