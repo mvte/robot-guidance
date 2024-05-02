@@ -6,12 +6,14 @@ from game.calc.general_network import GeneralNetwork
 
 class GeneralizedBot():
     def __init__(self, pos, ship):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         self.pos = pos
 
         self.polyIter = PolicyIteration(ship.board)
 
         self.model = GeneralNetwork()
-        self.model.load_state_dict(torch.load("generalized_bot.pth"))
+        self.model.load_state_dict(torch.load("generalized_bot.pth", map_location=device))
         self.model
         self.shipTensor = torch.zeros(121)
         for i in range(11):
